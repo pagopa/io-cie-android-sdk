@@ -9,8 +9,6 @@
 # 
 
 variables:
-  NODE_VERSION: '10.18.0'
-  YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
   gitReference: ${{ replace(replace(variables['Build.SourceBranch'], 'refs/tags/', ''), 'refs/heads/', '') }}
 
 parameters:
@@ -35,8 +33,8 @@ resources:
     - repository: pagopaCommons
       type: github
       name: pagopa/azure-pipeline-templates
-      ref: refs/tags/v4
-      endpoint: 'pagopa'
+      ref: refs/tags/v15
+      endpoint: 'io-azure-devops-github-ro'
 
 stages:
 
@@ -56,24 +54,27 @@ stages:
           )
         )
       )
+    pool:
+      vmImage: 'ubuntu-latest'
     jobs:
       - job: make_release
         steps:
         - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
-          - template: templates/node-github-release/template.yaml@pagopaCommons 
+          - template: templates/node-job-setup/template.yaml@pagopaCommons
+            parameters:
+              persistCredentials: true
+          - template: templates/node-github-release/template.yaml@pagopaCommons
             parameters:
               semver: '${{ parameters.RELEASE_SEMVER }}'
               gitEmail: $(GIT_EMAIL)
               gitUsername: $(GIT_USERNAME)
               gitHubConnection: $(GITHUB_CONNECTION)
-              nodeVersion: $(NODE_VERSION)
-              pkg_cache_version_id: $(CACHE_VERSION_ID)
-              pkg_cache_folder: $(YARN_CACHE_FOLDER)
 
         - ${{ if ne(variables['Build.SourceBranch'], 'refs/heads/master') }}:
           - script: |
               echo "We assume this reference to be a valid release: $(Build.SourceBranch). Therefore, there is no need to bundle a new release."
             displayName: 'Skip release bundle'
+
 
   # Prepare Artifact
   - stage: Prepare_artifact
@@ -82,7 +83,7 @@ stages:
     jobs:
       - job: make_build
         steps:
-          - template: azure-templates/setup-project.yml
+          - template:  templates/node-job-setup/template.yaml@pagopaCommons
             parameters:
               # On the assumption that this stage is executed only when Relase stage is,
               #  with this parameter we set the reference the deploy script must pull changes from.

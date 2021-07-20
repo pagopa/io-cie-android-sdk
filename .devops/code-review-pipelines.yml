@@ -17,6 +17,14 @@ trigger: none
 pool:
   vmImage: 'ubuntu-latest'
 
+resources:
+  repositories:
+    - repository: pagopaCommons
+      type: github
+      name: pagopa/azure-pipeline-templates
+      ref: refs/tags/v15
+      endpoint: 'io-azure-devops-github-ro'
+
 stages:
   
   - stage: Static_analysis
@@ -32,7 +40,7 @@ stages:
             )
           )
         steps:
-          - template: azure-templates/setup-project.yml
+          - template: templates/node-job-setup/template.yaml@pagopaCommons
           - bash: |
               yarn danger ci
             env:
